@@ -42,6 +42,7 @@ class KtmCardTest extends TestCase
         $this->assertStringContainsString('uppercase">Kartu Mahasiswa</div>', $preview);
         $this->assertStringContainsString('aspect-[1011/639]', $preview);
         $this->assertStringContainsString('100cqw / 1011px', $preview);
+        $this->assertStringContainsString('card-back_TI.png', $preview);
 
         $response = $controller->downloadCard($ktm, 'depan', $downloadCardServices);
         ob_start();
@@ -57,17 +58,12 @@ class KtmCardTest extends TestCase
         $this->assertGreaterThan($waveColor['red'], $waveColor['blue']);
         $this->assertGreaterThan($waveColor['green'], $waveColor['blue']);
 
-        $logoBackground = imagecolorsforindex($image, imagecolorat($image, 300, 100));
-        $this->assertSame(255, $logoBackground['red']);
-        $this->assertSame(255, $logoBackground['green']);
-        $this->assertSame(255, $logoBackground['blue']);
-
         $leftMargin = imagecolorsforindex($image, imagecolorat($image, 20, 293));
         $this->assertSame(255, $leftMargin['red']);
         $this->assertSame(255, $leftMargin['green']);
         $this->assertSame(255, $leftMargin['blue']);
 
-        $studentPhoto = imagecolorsforindex($image, imagecolorat($image, 60, 293));
+        $studentPhoto = imagecolorsforindex($image, imagecolorat($image, 100, 300));
         $this->assertSame(200, $studentPhoto['red']);
         $this->assertSame(40, $studentPhoto['green']);
         $this->assertSame(120, $studentPhoto['blue']);
@@ -83,6 +79,38 @@ class KtmCardTest extends TestCase
             }
         }
         $this->assertTrue($hasWebsiteTextColor);
+
+        imagedestroy($image);
+    }
+
+    public function test_back_card_uses_the_matching_template_and_downloads_as_png(): void
+    {
+        $ktm = new Ktm([
+            'nama' => 'Alisya Felisya',
+            'nim' => '55201230XX',
+            'program_studi' => 'Sistem Informasi',
+            'angkatan' => 2023,
+            'foto_path' => 'foto-ktm/test-student.png',
+            'kode_pengajuan' => 'KTM-TEST456',
+            'token_verifikasi' => Str::uuid()->toString(),
+            'status' => 'approved',
+        ]);
+        $ktm->setAttribute('id', 2);
+
+        $controller = app(KtmController::class);
+        $downloadCardServices = app(DownloadCardServices::class);
+        $preview = $controller->card($ktm, $downloadCardServices)->render();
+        $this->assertStringContainsString('card-back_SI.png', $preview);
+
+        $response = $controller->downloadCard($ktm, 'belakang', $downloadCardServices);
+        ob_start();
+        $response->sendContent();
+        $png = ob_get_clean();
+
+        $image = imagecreatefromstring($png);
+        $this->assertInstanceOf(\GdImage::class, $image);
+        $this->assertSame(1011, imagesx($image));
+        $this->assertSame(639, imagesy($image));
 
         imagedestroy($image);
     }

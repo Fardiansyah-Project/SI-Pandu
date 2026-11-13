@@ -12,7 +12,8 @@
 
         <!-- Latar belakang gelombang biru atas) -->
         <div class="">
-            <img src="{{ asset('assets/partials/top_wave.png') }}" alt="" class="absolute top-0 left-0 w-full h-auto">
+            <img src="{{ $topWaveSource ?? asset('assets/partials/top_wave.png') }}" alt=""
+                class="absolute top-0 left-0 w-full h-auto">
         </div>
 
         <!-- Header kampus (kiri atas) -->
@@ -53,13 +54,13 @@
         </div>
 
         <!-- QR Code (kanan bawah) -->
-        <div class="absolute right-9 bottom-6 w-[110px] h-[110px] bg-white">
+        <div class="absolute right-9 bottom-6 w-[111px] h-[111px] bg-blue-950">
             <img src="{{ $verificationQr }}" alt="QR verifikasi KTM {{ $ktm->nama }}"
                 class="w-full h-full object-contain">
         </div>
 
         {{-- Bottom Wave --}}
-        <img src="{{ asset('assets/partials/' . ($isSistemInformasi ? 'bottom_wave_SI.png' : 'bottom_wave_TI.png')) }}"
+        <img src="{{ $bottomWaveSource ?? asset('assets/partials/' . ($isSistemInformasi ? 'bottom_wave_SI.png' : 'bottom_wave_TI.png')) }}"
             alt="" aria-hidden="true" class="absolute bottom-0 left-0 -z-10 w-full h-auto pointer-events-none">
     </div>
 </div>

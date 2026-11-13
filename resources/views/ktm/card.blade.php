@@ -24,7 +24,7 @@
                         href="{{ route('admin.ktm.download', [$ktm, 'belakang']) }}"
                         class="rounded-lg bg-blue-700 px-4 py-2 text-sm font-bold text-white">Unduh PNG</a>
                 </div>
-                <div class="overflow-hidden rounded-2xl bg-[#e7f1ff] shadow-lg">
+                {{-- <div class="overflow-hidden rounded-2xl bg-[#e7f1ff] shadow-lg">
                     <div class="border-b-4 border-red-600 bg-[#102b5c] p-5 text-white">
                         <p class="text-2xl font-black">INFORMASI KARTU</p>
                     </div>
@@ -47,7 +47,8 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                </div> --}}
+                @include('ktm.partials.card-back')
             </article>
         </div>
     </section>

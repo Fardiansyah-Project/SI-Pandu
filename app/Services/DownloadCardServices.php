@@ -4,12 +4,14 @@ namespace App\Services;
 
 use App\Models\Ktm;
 use Endroid\QrCode\ErrorCorrectionLevel;
+use Endroid\QrCode\Logo\Logo;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\PngWriter;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\Process\Exception\ProcessFailedException;
+use Symfony\Component\Process\Exception\ProcessTimedOutException;
 use Symfony\Component\Process\ExecutableFinder;
 use Symfony\Component\Process\Process;
 
@@ -35,6 +37,22 @@ class DownloadCardServices
         return (new PngWriter)->write($qrCode)->getString();
     }
 
+    public function officialWebsiteQr(int $size = 128): string
+    {
+        $logoPath = public_path('assets/logo/logo.png');
+        abort_unless(is_file($logoPath), 503, 'Logo STMIK untuk QR kartu tidak ditemukan.');
+
+        $qrCode = QrCode::create('https://stmikadhiguna.ac.id/')
+            ->setErrorCorrectionLevel(ErrorCorrectionLevel::High)
+            ->setSize($size)
+            ->setMargin(0);
+        $logo = Logo::create($logoPath)
+            ->setResizeToWidth(intdiv($size, 4))
+            ->setPunchoutBackground(true);
+
+        return (new PngWriter)->write($qrCode, $logo)->getString();
+    }
+
     private function downloadFrontCard(Ktm $ktm): StreamedResponse
     {
         $temporaryDirectory = $this->createTemporaryDirectory();
@@ -51,11 +69,20 @@ class DownloadCardServices
 
             $logoPath = public_path('assets/logo/logo.png');
             $photoPath = Storage::disk('public')->path($ktm->foto_path);
+            $topWavePath = public_path('assets/partials/top_wave.png');
+            $bottomWaveFilename = mb_strtolower(trim($ktm->program_studi)) === 'sistem informasi'
+                ? 'bottom_wave_SI.png'
+                : 'bottom_wave_TI.png';
+            $bottomWavePath = public_path('assets/partials/'.$bottomWaveFilename);
+            abort_unless(is_file($topWavePath) && is_file($bottomWavePath), 503, 'Aset gelombang kartu tidak ditemukan.');
+
             $view = view('ktm.download-card-front', [
                 'ktm' => $ktm,
                 'verificationQr' => 'data:image/png;base64,'.base64_encode($this->verificationQr($ktm)),
                 'logoSource' => $this->imageDataUri($logoPath, 'image/png'),
                 'photoSource' => $this->imageDataUri($photoPath, 'image/png'),
+                'topWaveSource' => $this->imageDataUri($topWavePath, 'image/png'),
+                'bottomWaveSource' => $this->imageDataUri($bottomWavePath, 'image/png'),
                 'cardStyles' => $this->cardStyles(),
             ])->render();
 
@@ -67,6 +94,8 @@ class DownloadCardServices
                 $this->browserExecutable(),
                 '--headless',
                 '--disable-gpu',
+                '--disable-crash-reporter',
+                '--disable-breakpad',
                 '--hide-scrollbars',
                 '--no-first-run',
                 '--no-default-browser-check',
@@ -83,6 +112,9 @@ class DownloadCardServices
 
             try {
                 $process->mustRun();
+            } catch (ProcessTimedOutException $exception) {
+                report($exception);
+                abort(503, 'Proses rendering kartu depan melewati batas waktu.');
             } catch (ProcessFailedException $exception) {
                 report($exception);
                 abort(503, 'Gagal merender kartu. Pastikan Chromium atau Chrome dapat dijalankan.');
@@ -90,7 +122,6 @@ class DownloadCardServices
 
             abort_unless(is_file($pngPath) && filesize($pngPath) > 0, 503, 'PNG kartu depan gagal dibuat.');
 
-            $this->removeTemporaryDirectory($browserProfile);
             unlink($htmlPath);
             $keepTemporaryDirectory = true;
 
@@ -112,47 +143,51 @@ class DownloadCardServices
 
     private function downloadBackCard(Ktm $ktm): StreamedResponse
     {
-        $font = public_path('fonts/DejaVuSans.ttf');
-        $boldFont = public_path('fonts/DejaVuSans-Bold.ttf');
-        abort_unless(extension_loaded('gd') && function_exists('imagecreatetruecolor'), 503, 'Ekstensi GD diperlukan untuk membuat PNG KTM.');
-        abort_unless(file_exists($font) && file_exists($boldFont), 503, 'Font render kartu belum tersedia.');
+        abort_unless(extension_loaded('gd') && function_exists('imagecreatefrompng'), 503, 'Ekstensi GD diperlukan untuk membuat PNG KTM.');
 
-        $width = 1011;
-        $height = 639;
-        $image = imagecreatetruecolor($width, $height);
-        imageantialias($image, true);
-        $navy = imagecolorallocate($image, 16, 43, 92);
-        $blue = imagecolorallocate($image, 23, 75, 155);
-        $pale = imagecolorallocate($image, 231, 241, 255);
-        $white = imagecolorallocate($image, 255, 255, 255);
-        $red = imagecolorallocate($image, 205, 49, 61);
-        $muted = imagecolorallocate($image, 79, 99, 128);
+        $isSistemInformasi = mb_strtolower(trim($ktm->program_studi)) === 'sistem informasi';
+        $template = $isSistemInformasi ? 'card-back_SI.png' : 'card-back_TI.png';
+        $templatePath = public_path('assets/partials/'.$template);
+        abort_unless(is_file($templatePath), 503, 'Template kartu belakang tidak ditemukan.');
 
-        imagefilledrectangle($image, 0, 0, $width, $height, $pale);
-        imagefilledrectangle($image, 0, 0, $width, 142, $navy);
-        imagefilledrectangle($image, 0, 135, $width, 144, $red);
-        imagefilledellipse($image, 930, 580, 400, 300, $white);
-        imagefilledellipse($image, 1010, 610, 340, 250, $blue);
+        $image = imagecreatefrompng($templatePath);
+        abort_unless($image !== false, 503, 'Template kartu belakang tidak dapat dibuka.');
 
-        imagettftext($image, 34, 0, 42, 88, $white, $boldFont, 'INFORMASI KARTU');
-        imagettftext($image, 22, 0, 42, 200, $navy, $boldFont, 'PERHATIAN');
-        $lines = [
-            '1. Kartu ini adalah tanda pengenal resmi mahasiswa.',
-            '2. Kartu wajib dibawa selama berada di lingkungan kampus.',
-            '3. Jika kartu hilang, segera laporkan ke bagian akademik.',
-        ];
-        foreach ($lines as $index => $line) {
-            imagettftext($image, 16, 0, 42, 250 + ($index * 48), $navy, $font, $line);
+        $qrImage = imagecreatefromstring($this->officialWebsiteQr());
+        if ($qrImage === false) {
+            imagedestroy($image);
+            abort(503, 'QR situs resmi STMIK tidak dapat dibuat.');
         }
-        imagettftext($image, 15, 0, 42, 480, $muted, $font, 'VERIFIKASI DIGITAL');
-        imagettftext($image, 14, 0, 42, 515, $blue, $font, route('ktm.verify', $ktm->token_verifikasi));
-        imagettftext($image, 16, 0, 600, 485, $navy, $font, 'KETUA');
-        imagettftext($image, 19, 0, 600, 525, $navy, $font, 'Hj. Mus Aidah, S.Pd., MM.');
-        imagettftext($image, 15, 0, 600, 557, $muted, $font, 'NIDN 0918127802');
+
+        try {
+            $white = imagecolorallocate($image, 255, 255, 255);
+            imagefilledrectangle($image, 41, 484, 176, 619, $white);
+            if (! imagecopyresampled(
+                $image,
+                $qrImage,
+                44,
+                487,
+                0,
+                0,
+                130,
+                130,
+                imagesx($qrImage),
+                imagesy($qrImage),
+            )) {
+                throw new RuntimeException('Tidak dapat menempatkan QR situs resmi pada kartu belakang.');
+            }
+        } finally {
+            imagedestroy($qrImage);
+        }
 
         return response()->streamDownload(function () use ($image): void {
-            imagepng($image);
-            imagedestroy($image);
+            try {
+                if (! imagepng($image)) {
+                    throw new RuntimeException('Tidak dapat membuat PNG kartu belakang.');
+                }
+            } finally {
+                imagedestroy($image);
+            }
         }, 'KTM-'.$ktm->nim.'-belakang.png', ['Content-Type' => 'image/png']);
     }
 
@@ -309,13 +344,40 @@ class DownloadCardServices
 
             if ($entry->isDir() && ! $entry->isLink()) {
                 $this->removeTemporaryDirectory($path);
-            } elseif (! unlink($path)) {
-                throw new RuntimeException('Tidak dapat menghapus file sementara kartu.');
+            } else {
+                $this->removeTemporaryFile($path);
             }
         }
 
         if (! rmdir($directory)) {
             throw new RuntimeException('Tidak dapat menghapus direktori sementara kartu.');
         }
+    }
+
+    private function removeTemporaryFile(string $path): void
+    {
+        $attempts = PHP_OS_FAMILY === 'Windows' ? 30 : 1;
+
+        for ($attempt = 1; $attempt <= $attempts; $attempt++) {
+            try {
+                if (unlink($path)) {
+                    return;
+                }
+            } catch (\ErrorException $exception) {
+                $message = $exception->getMessage();
+                $isFileLocked = str_contains($message, 'Permission denied')
+                    || str_contains($message, 'Resource temporarily unavailable');
+
+                if (! $isFileLocked || $attempt === $attempts) {
+                    throw $exception;
+                }
+            }
+
+            if ($attempt < $attempts) {
+                usleep(100_000);
+            }
+        }
+
+        throw new RuntimeException('Tidak dapat menghapus file sementara kartu: '.$path);
     }
 }

@@ -79,6 +79,7 @@ class KtmController extends Controller
         return view('ktm.card', [
             'ktm' => $ktm,
             'verificationQr' => 'data:image/png;base64,'.base64_encode($downloadCardServices->verificationQr($ktm)),
+            'backQr' => 'data:image/png;base64,'.base64_encode($downloadCardServices->officialWebsiteQr()),
         ]);
     }
 
