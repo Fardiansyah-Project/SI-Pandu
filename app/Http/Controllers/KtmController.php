@@ -28,6 +28,27 @@ class KtmController extends Controller
             'angkatan' => ['required', 'integer', 'min:2000', 'max:'.(now()->year + 1)],
             'foto' => ['required', 'image', 'mimes:jpg,jpeg,png', 'max:5120'],
             'persetujuan' => ['accepted'],
+        ], [
+            'nama.required' => 'Nama lengkap harus diisi.',
+            'nama.string' => 'Nama lengkap harus berupa teks.',
+            'nama.max' => 'Nama lengkap tidak boleh lebih dari 120 karakter.',
+            'nim.required' => 'NIM harus diisi.',
+            'nim.string' => 'NIM harus berupa teks.',
+            'nim.max' => 'NIM tidak boleh lebih dari 30 karakter.',
+            'nim.regex' => 'NIM hanya boleh berisi huruf, angka, titik, dan tanda hubung.',
+            'nim.unique' => 'NIM sudah terdaftar.',
+            'program_studi.required' => 'Program studi harus diisi.',
+            'program_studi.string' => 'Program studi tidak valid.',
+            'program_studi.max' => 'Program studi tidak boleh lebih dari 120 karakter.',
+            'angkatan.required' => 'Angkatan harus diisi.',
+            'angkatan.integer' => 'Angkatan harus berupa angka.',
+            'angkatan.min' => 'Angkatan tidak boleh kurang dari 2000.',
+            'angkatan.max' => 'Angkatan tidak boleh lebih dari '.(now()->year + 1).'.',
+            'foto.required' => 'Pas foto harus diunggah.',
+            'foto.image' => 'File yang diunggah harus berupa gambar.',
+            'foto.mimes' => 'File yang diunggah harus berupa JPG atau PNG.',
+            'foto.max' => 'Ukuran file pas foto tidak boleh lebih dari 5 MB.',
+            'persetujuan.accepted' => 'Anda harus menyetujui penggunaan data dan foto untuk keperluan penerbitan KTM serta verifikasi akademik.',
         ]);
 
         $fotoPath = $request->file('foto')->store('foto-ktm', 'public');
