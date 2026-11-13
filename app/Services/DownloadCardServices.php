@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\Ktm;
 use Endroid\QrCode\ErrorCorrectionLevel;
-use Endroid\QrCode\Logo\Logo;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\PngWriter;
 use Illuminate\Support\Facades\Storage;
@@ -35,22 +34,6 @@ class DownloadCardServices
             ->setMargin(0);
 
         return (new PngWriter)->write($qrCode)->getString();
-    }
-
-    public function officialWebsiteQr(int $size = 128): string
-    {
-        $logoPath = public_path('assets/logo/logo.png');
-        abort_unless(is_file($logoPath), 503, 'Logo STMIK untuk QR kartu tidak ditemukan.');
-
-        $qrCode = QrCode::create('https://stmikadhiguna.ac.id/')
-            ->setErrorCorrectionLevel(ErrorCorrectionLevel::High)
-            ->setSize($size)
-            ->setMargin(0);
-        $logo = Logo::create($logoPath)
-            ->setResizeToWidth(intdiv($size, 4))
-            ->setPunchoutBackground(true);
-
-        return (new PngWriter)->write($qrCode, $logo)->getString();
     }
 
     private function downloadFrontCard(Ktm $ktm): StreamedResponse
@@ -143,50 +126,14 @@ class DownloadCardServices
 
     private function downloadBackCard(Ktm $ktm): StreamedResponse
     {
-        abort_unless(extension_loaded('gd') && function_exists('imagecreatefrompng'), 503, 'Ekstensi GD diperlukan untuk membuat PNG KTM.');
-
         $isSistemInformasi = mb_strtolower(trim($ktm->program_studi)) === 'sistem informasi';
         $template = $isSistemInformasi ? 'card-back_SI.png' : 'card-back_TI.png';
         $templatePath = public_path('assets/partials/'.$template);
         abort_unless(is_file($templatePath), 503, 'Template kartu belakang tidak ditemukan.');
 
-        $image = imagecreatefrompng($templatePath);
-        abort_unless($image !== false, 503, 'Template kartu belakang tidak dapat dibuka.');
-
-        $qrImage = imagecreatefromstring($this->officialWebsiteQr());
-        if ($qrImage === false) {
-            imagedestroy($image);
-            abort(503, 'QR situs resmi STMIK tidak dapat dibuat.');
-        }
-
-        try {
-            $white = imagecolorallocate($image, 255, 255, 255);
-            imagefilledrectangle($image, 41, 484, 176, 619, $white);
-            if (! imagecopyresampled(
-                $image,
-                $qrImage,
-                44,
-                487,
-                0,
-                0,
-                130,
-                130,
-                imagesx($qrImage),
-                imagesy($qrImage),
-            )) {
-                throw new RuntimeException('Tidak dapat menempatkan QR situs resmi pada kartu belakang.');
-            }
-        } finally {
-            imagedestroy($qrImage);
-        }
-
-        return response()->streamDownload(function () use ($image): void {
-            try {
-                if (! imagepng($image)) {
-                    throw new RuntimeException('Tidak dapat membuat PNG kartu belakang.');
-                }
-            } finally {
-                imagedestroy($image);
+        return response()->streamDownload(function () use ($templatePath): void {
+            if (readfile($templatePath) === false) {
+                throw new RuntimeException('Tidak dapat membaca template kartu belakang.');
             }
         }, 'KTM-'.$ktm->nim.'-belakang.png', ['Content-Type' => 'image/png']);
     }

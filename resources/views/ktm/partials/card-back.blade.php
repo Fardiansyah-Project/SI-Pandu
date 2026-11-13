@@ -9,8 +9,5 @@
         style="--scale: {{ $cardScale ?? 'min(1, calc(100cqw / 1011px))' }}">
         <img src="{{ asset('assets/partials/' . $background) }}" alt="" aria-hidden="true"
             class="absolute inset-0 w-full h-full object-cover">
-        {{-- <div class="absolute left-[41px] top-[484px] z-10 h-[136px] w-[136px] bg-blue-950"></div>
-        <img src="{{ $backQr }}" alt="QR situs resmi STMIK Adhi Guna"
-            class="absolute left-[44px] top-[487px] z-20 h-[130px] w-[130px] object-contain"> --}}
     </div>
 </div>

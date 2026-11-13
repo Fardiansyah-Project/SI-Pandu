@@ -107,11 +107,8 @@ class KtmCardTest extends TestCase
         $response->sendContent();
         $png = ob_get_clean();
 
-        $image = imagecreatefromstring($png);
-        $this->assertInstanceOf(\GdImage::class, $image);
-        $this->assertSame(1011, imagesx($image));
-        $this->assertSame(639, imagesy($image));
-
-        imagedestroy($image);
+        $template = file_get_contents(public_path('assets/partials/card-back_SI.png'));
+        $this->assertNotFalse($template);
+        $this->assertSame($template, $png);
     }
 }
