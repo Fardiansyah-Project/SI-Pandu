@@ -1,3 +1,8 @@
+@php
+    $isSistemInformasi = mb_strtolower(trim($ktm->program_studi)) === 'sistem informasi';
+    $accentStart = $isSistemInformasi ? '#facc15' : '#dc2626';
+    $accentEnd = $isSistemInformasi ? '#eab308' : '#b91c1c';
+@endphp
 <div
     class="relative w-full aspect-[1011/639] [container-type:inline-size] print:w-[1011px] print:h-[639px] print:aspect-auto">
     <div
@@ -10,20 +15,20 @@
             aria-hidden="true">
             <defs>
                 <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="#1fa3dc" />
-                    <stop offset="1" stop-color="#0a6fc2" />
+                    <stop offset="0" stop-color="{{ $accentStart }}" />
+                    <stop offset="1" stop-color="{{ $accentEnd }}" />
                 </linearGradient>
                 <linearGradient id="g2" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="#8ed3ee" />
-                    <stop offset="1" stop-color="#c9e9f6" />
+                    <stop offset="0" stop-color="{{ $isSistemInformasi ? '#fde047' : '#fca5a5' }}" />
+                    <stop offset="1" stop-color="{{ $isSistemInformasi ? '#fef08a' : '#fecaca' }}" />
                 </linearGradient>
                 <linearGradient id="g3" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="#9db4d6" />
-                    <stop offset="1" stop-color="#b9a9c4" />
+                    <stop offset="0" stop-color="{{ $isSistemInformasi ? '#eab308' : '#ef4444' }}" />
+                    <stop offset="1" stop-color="{{ $isSistemInformasi ? '#fef08a' : '#fca5a5' }}" />
                 </linearGradient>
                 <linearGradient id="g4" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="#2cb1e8" />
-                    <stop offset="1" stop-color="#0a8fd0" />
+                    <stop offset="0" stop-color="{{ $isSistemInformasi ? '#fde047' : '#f87171' }}" />
+                    <stop offset="1" stop-color="{{ $isSistemInformasi ? '#eab308' : '#dc2626' }}" />
                 </linearGradient>
             </defs>
             <!-- kanan atas -->
@@ -34,13 +39,13 @@
             <path d="M760 0 H1011 V300 C960 190 880 90 800 40 C785 30 770 12 760 0 Z" fill="url(#g1)"
                 opacity=".85" />
             <path d="M870 0 H1011 V170 C970 90 925 35 870 0 Z" fill="url(#g4)" />
-            <path d="M890 110 C945 190 990 290 1011 400 V510 C985 380 940 260 890 110 Z" fill="#e58a8a"
+            <path d="M890 110 C945 190 990 290 1011 400 V510 C985 380 940 260 890 110 Z" fill="{{ $isSistemInformasi ? '#facc15' : '#dc2626' }}"
                 opacity=".75" />
-            <path d="M1011 450 C990 540 955 600 930 639 H1011 Z" fill="#8ed3ee" opacity=".8" />
-            <path d="M1011 520 C1000 570 985 610 975 639 H1011 Z" fill="#0a6fc2" opacity=".8" />
+            <path d="M1011 450 C990 540 955 600 930 639 H1011 Z" fill="{{ $isSistemInformasi ? '#fde047' : '#fca5a5' }}" opacity=".8" />
+            <path d="M1011 520 C1000 570 985 610 975 639 H1011 Z" fill="{{ $accentEnd }}" opacity=".8" />
             <!-- kiri bawah -->
             <path d="M0 360 C60 440 150 530 270 639 H0 Z" fill="url(#g1)" />
-            <path d="M0 440 C90 480 180 560 270 639 H130 C85 565 40 500 0 440 Z" fill="#8ed3ee"
+            <path d="M0 440 C90 480 180 560 270 639 H130 C85 565 40 500 0 440 Z" fill="{{ $isSistemInformasi ? '#fde047' : '#fca5a5' }}"
                 opacity=".8" />
             <path d="M0 520 C80 550 150 595 215 639" stroke="#e58a8a" stroke-width="3" fill="none"
                 opacity=".8" />
