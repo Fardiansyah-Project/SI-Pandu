@@ -76,6 +76,8 @@ class DownloadCardServices
             $process = new Process([
                 $this->browserExecutable(),
                 '--headless',
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
                 '--disable-gpu',
                 '--disable-crash-reporter',
                 '--disable-breakpad',
@@ -243,6 +245,13 @@ class DownloadCardServices
             $programFiles.'\\Microsoft\\Edge\\Application\\msedge.exe',
             $programFilesX86.'\\Microsoft\\Edge\\Application\\msedge.exe',
             $localAppData.'\\Google\\Chrome\\Application\\chrome.exe',
+            '/usr/bin/google-chrome',
+            '/usr/bin/google-chrome-stable',
+            '/usr/bin/chromium',
+            '/usr/bin/chromium-browser',
+            '/snap/bin/chromium',
+            '/usr/local/bin/chrome',
+            '/usr/local/bin/chromium',
         ];
 
         foreach ($commonPaths as $path) {

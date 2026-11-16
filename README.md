@@ -122,6 +122,29 @@ Akses aplikasi melalui browser di:
 
 ---
 
+## ⚙️ Konfigurasi Tambahan untuk Production (Unduh Kartu Depan)
+
+Fitur unduh kartu bagian depan menggunakan **Headless Chromium / Chrome** untuk merender template HTML menjadi gambar PNG (`--screenshot`).
+
+Jika di-deploy ke server Linux (VPS / Ubuntu / Debian / Docker):
+1. **Wajib install Chromium di server:**
+   ```bash
+   sudo apt update
+   sudo apt install -y chromium-browser # atau: sudo apt install -y chromium
+   ```
+2. **Atur lokasi binary di file `.env` server jika tidak terdeteksi otomatis:**
+   ```env
+   KTM_CHROME_PATH=/usr/bin/chromium-browser
+   # atau
+   # KTM_CHROME_PATH=/usr/bin/chromium
+   ```
+3. **Pastikan aset frontend telah di-compile:**
+   ```bash
+   npm run build
+   ```
+
+---
+
 ## 🔑 Kredensial Akun Default (Admin)
 
 Setelah menjalankan `php artisan migrate --seed`, akun administrator default yang dapat digunakan adalah:
