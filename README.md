@@ -1,58 +1,147 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# SIPEKA — Sistem Informasi Pengajuan Kartu Mahasiswa
+### STMIK Adhi Guna
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+SIPEKA adalah aplikasi berbasis web yang digunakan untuk mengelola permohonan, verifikasi, serta penerbitan Kartu Tanda Mahasiswa (KTM) digital secara online dan terintegrasi. Dilengkapi dengan fitur pemotongan pas foto langsung, QR code verifikasi keaslian KTM, serta notifikasi email otomatis saat status pengajuan diverifikasi oleh pihak akademik.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 📌 Prasyarat Sistem
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Sebelum melakukan instalasi, pastikan sistem/komputer Anda telah terpasang:
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- **PHP** `>= 8.3` (pastikan ekstensi `pdo_mysql`, `gd`, `fileinfo`, `mbstring`, `openssl`, `curl` aktif)
+- **Composer** `>= 2.0`
+- **Node.js** `>= 18.x` & **NPM**
+- **Database Server** (MySQL atau MariaDB)
 
-## Learning Laravel
+---
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## 🚀 Panduan Instalasi & Setup
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+Ikuti langkah-langkah di bawah ini untuk memasang project di lingkungan lokal:
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
+### 1. Clone Repository & Masuk ke Folder Project
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+git clone <URL_REPOSITORY_ANDA>
+cd sipandu
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+### 2. Install Dependensi PHP (Composer)
+```bash
+composer install
+```
 
-## Contributing
+### 3. Install Dependensi Frontend (NPM)
+```bash
+npm install
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### 4. Salin & Konfigurasi File Environment
+Salin file `.env.example` menjadi `.env`:
 
-## Code of Conduct
+**Windows (PowerShell):**
+```powershell
+copy .env.example .env
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+**Linux / macOS:**
+```bash
+cp .env.example .env
+```
 
-## Security Vulnerabilities
+### 5. Generate Application Key
+```bash
+php artisan key:generate
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### 6. Konfigurasi Database & Email di `.env`
+Buka file `.env` dan sesuaikan pengaturan koneksi database Anda:
 
-## License
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=db_sipandu
+DB_USERNAME=root
+DB_PASSWORD=
+```
+> **Catatan:** Pastikan database (contoh: `db_sipandu`) sudah dibuat terlebih dahulu di MySQL/phpMyAdmin Anda.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Untuk pengaturan notifikasi email:
+```env
+# Mode pengembangan (email dicatat di storage/logs/laravel.log):
+MAIL_MAILER=log
+
+# Mode produksi / SMTP langsung (misal: Gmail SMTP):
+# MAIL_MAILER=smtp
+# MAIL_HOST=smtp.gmail.com
+# MAIL_PORT=587
+# MAIL_USERNAME=email_anda@gmail.com
+# MAIL_PASSWORD=app_password_anda
+# MAIL_ENCRYPTION=tls
+# MAIL_FROM_ADDRESS="noreply@stmik-adhiguna.ac.id"
+# MAIL_FROM_NAME="${APP_NAME}"
+```
+
+### 7. Jalankan Migrasi & Seeder Database
+Jalankan migrasi tabel beserta akun admin awal:
+```bash
+php artisan migrate --seed
+```
+
+### 8. Hubungkan Storage Publik
+PENTING: Buat symlink storage agar pas foto mahasiswa dapat diakses dan diunduh:
+```bash
+php artisan storage:link
+```
+
+### 9. Build Aset Frontend
+Lakukan kompilasi aset CSS/JS dengan Vite:
+
+**Untuk produksi:**
+```bash
+npm run build
+```
+
+**Atau untuk pengembangan (Hot Module Replacement):**
+```bash
+npm run dev
+```
+
+---
+
+## 🖥️ Menjalankan Aplikasi
+
+Jalankan local development server Laravel:
+```bash
+php artisan serve
+```
+
+Akses aplikasi melalui browser di:
+👉 **[http://localhost:8000](http://localhost:8000)**
+
+---
+
+## 🔑 Kredensial Akun Default (Admin)
+
+Setelah menjalankan `php artisan migrate --seed`, akun administrator default yang dapat digunakan adalah:
+
+| Informasi | Keterangan |
+| :--- | :--- |
+| **URL Login** | `http://localhost:8000/login` |
+| **Email** | `adminganteng@gmail.com` |
+| **Password** | `password` |
+
+---
+
+## ✨ Fitur Utama
+
+1. **Formulir Pengajuan Mandiri:** Mahasiswa menginput Nama, NIM, Email, Angkatan, Program Studi, dan pas foto formal.
+2. **Interactive Photo Cropper:** Pratinjau pas foto dengan rasio 3:4 langsung di browser sebelum diunggah.
+3. **Notifikasi Email Real-Time:** Email otomatis terkirim ke mahasiswa saat pengajuan disetujui atau ditolak (beserta catatan revisi).
+4. **Verifikasi Publik & QR Code:** Setiap KTM yang disetujui memiliki QR Code yang mengarah ke halaman verifikasi resmi.
+5. **Dashboard Admin:**
+   - Rekap statistik pengajuan (Total, Menunggu, Disetujui, Ditolak).
+   - Fitur pencarian nama/NIM dan filter status.
+   - Setujui / tolak pengajuan dengan catatan alasan penolakan.
+   - Pratinjau dan unduh kartu KTM bagian depan & belakang.
