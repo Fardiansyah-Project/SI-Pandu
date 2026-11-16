@@ -29,8 +29,8 @@
     <header class="border-b border-white/10 bg-[#102b5c] text-white">
         <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
             <a href="{{ route('ktm.create') }}" class="flex items-center gap-3">
-                <img src="{{ asset('assets/logo/logo.png') }}"
-                    class="grid h-11 w-11 place-items-center rounded-full bg-white" />
+                <img src="{{ asset('assets/logo/images/logo.png') }}"
+                    class="grid h-11 w-11 place-items-center"/>
                 <div class="gap-1">
                     <div class="text-sm font-extrabold tracking-wide">
                         SIPANDU

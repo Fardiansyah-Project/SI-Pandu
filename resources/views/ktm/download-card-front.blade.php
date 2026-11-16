@@ -21,6 +21,8 @@
     @include('ktm.partials.card-front', [
         'logoSource' => $logoSource,
         'photoSource' => $photoSource,
+        'topWaveSource' => $topWaveSource,
+        'bottomWaveSource' => $bottomWaveSource,
     ])
 </body>
 

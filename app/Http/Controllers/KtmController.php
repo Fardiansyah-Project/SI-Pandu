@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\KtmRequest;
 use App\Models\Ktm;
 use App\Services\DownloadCardServices;
 use Illuminate\Http\RedirectResponse;
@@ -19,16 +20,10 @@ class KtmController extends Controller
         return view('ktm.create');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(KtmRequest $request): RedirectResponse
     {
-        $data = $request->validate([
-            'nama' => ['required', 'string', 'max:120'],
-            'nim' => ['required', 'string', 'max:30', 'regex:/^[0-9A-Za-z.-]+$/', 'unique:ktms,nim'],
-            'program_studi' => ['required', 'string', 'max:120'],
-            'angkatan' => ['required', 'integer', 'min:2000', 'max:'.(now()->year + 1)],
-            'foto' => ['required', 'image', 'mimes:jpg,jpeg,png', 'max:5120'],
-            'persetujuan' => ['accepted'],
-        ]);
+
+        $data = $request->validated();
 
         $fotoPath = $request->file('foto')->store('foto-ktm', 'public');
         $ktm = Ktm::create([
