@@ -22,8 +22,8 @@ Ikuti langkah-langkah di bawah ini untuk memasang project di lingkungan lokal:
 
 ### 1. Clone Repository & Masuk ke Folder Project
 ```bash
-git clone <URL_REPOSITORY_ANDA>
-cd sipandu
+git clone https://github.com/Fardiansyah-Project/SI-Peka.git
+cd SI-Peka
 ```
 
 ### 2. Install Dependensi PHP (Composer)
