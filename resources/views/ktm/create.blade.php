@@ -1,9 +1,26 @@
 @extends('layouts.app')
 @section('title', 'Sipandu')
 @section('content')
-    <section class="relative overflow-hidden bg-[#102b5c] text-white">
+    <style>
+        .ktm-hero-bg {
+            background-image: url('{{ asset('assets/img/bg.jpg') }}');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+        @media (max-width: 767px) {
+            .ktm-hero-bg {
+                background-image: url('{{ asset('assets/img/bg-mobile.jpg') }}');
+            }
+        }
+    </style>
+
+    <section class="relative isolate overflow-hidden text-white">
+        <div class="ktm-hero-bg absolute inset-0"></div>
+        <div class="absolute inset-0 bg-slate-900/45"></div>
         <div class="absolute -right-24 -top-40 h-96 w-96 rounded-full bg-blue-400/20 blur-3xl"></div>
-        <div class="mx-auto grid max-w-7xl gap-10 px-6 py-16 lg:grid-cols-[1fr_.8fr] lg:items-center lg:py-24">
+        <div class="relative z-10 mx-auto grid max-w-7xl gap-10 px-6 py-16 sm:py-20 lg:grid-cols-[1fr_.8fr] lg:items-center lg:py-24">
             <div class="relative"><span
                     class="inline-flex items-center gap-2 rounded-full border border-blue-300/30 bg-white/10 px-3 py-1.5 text-xs font-semibold text-blue-100">✦
                     LAYANAN AKADEMIK DIGITAL</span>
@@ -194,7 +211,7 @@
             <p class="mt-1 text-sm text-slate-500">Simpan kode pengajuan untuk referensi.</p>
         </div>
     </section>
-    <script>
+    {{-- <script>
         const nimInput = document.querySelector('[name="nim"]');
         nimInput.addEventListener('input', e => {
             const digits = e.target.value.replace(/\D/g, '');
@@ -334,5 +351,6 @@
                 HTMLFormElement.prototype.submit.call(form)
             }, 'image/jpeg', 0.92)
         });
-    </script>
+    </script> --}}
+    <script src="{{ mix('js/app.js') }}"></script>
 @endsection
