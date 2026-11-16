@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\KtmRequest;
+use App\Mail\KtmStatusUpdated;
 use App\Models\Ktm;
 use App\Services\DownloadCardServices;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -29,6 +31,7 @@ class KtmController extends Controller
         $ktm = Ktm::create([
             'nama' => $data['nama'],
             'nim' => $data['nim'],
+            'email' => $data['email'],
             'program_studi' => $data['program_studi'],
             'angkatan' => $data['angkatan'],
             'foto_path' => $fotoPath,
@@ -108,6 +111,10 @@ class KtmController extends Controller
             'catatan' => ['nullable', 'string', 'max:1000'],
         ]);
         $ktm->update(['status' => $data['status'], 'catatan' => $data['catatan'] ?? null, 'approved_at' => $data['status'] === 'approved' ? now() : null]);
+
+        if ($ktm->email) {
+            Mail::to($ktm->email)->send(new KtmStatusUpdated($ktm));
+        }
 
         return back()->with('success', 'Status pengajuan berhasil diperbarui.');
     }
