@@ -26,6 +26,7 @@ class KtmRequest extends FormRequest
         return [
             'nama' => ['required', 'string', 'max:120'],
             'nim' => ['required', 'string', 'max:30', 'regex:/^[0-9A-Za-z.-]+$/', 'unique:ktms,nim'],
+            'email' => ['required', 'email:rfc,dns', 'max:255'],
             'program_studi' => ['required', 'string', 'max:120'],
             'angkatan' => ['required', 'integer', 'min:2000', 'max:' . (now()->year)],
             'foto' => ['required', 'image', 'mimes:jpg,jpeg,png', 'max:5120'],
@@ -45,6 +46,9 @@ class KtmRequest extends FormRequest
             'nim.max' => 'NIM tidak boleh lebih dari 30 karakter.',
             'nim.regex' => 'NIM hanya boleh berisi huruf, angka, titik, dan tanda hubung.',
             'nim.unique' => 'NIM sudah terdaftar.',
+            'email.required' => 'Alamat email harus diisi.',
+            'email.email' => 'Alamat email tidak valid.',
+            'email.max' => 'Alamat email tidak boleh lebih dari 255 karakter.',
             'program_studi.required' => 'Program studi harus diisi.',
             'program_studi.string' => 'Program studi tidak valid.',
             'program_studi.max' => 'Program studi tidak boleh lebih dari 120 karakter.',

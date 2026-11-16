@@ -54,7 +54,11 @@
                                             onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2248%22%3E%3Crect width=%22100%25%22 height=%22100%25%22 fill=%22%23e2e8f0%22/%3E%3C/svg%3E'">
                                         <div><strong>{{ $ktm->nama }}</strong><span
                                                 class="block text-xs text-slate-500">{{ $ktm->nim }} ·
-                                                {{ $ktm->kode_pengajuan }}</span></div>
+                                                {{ $ktm->kode_pengajuan }}</span>
+                                            @if ($ktm->email)
+                                                <span class="block text-xs text-slate-400">{{ $ktm->email }}</span>
+                                            @endif
+                                        </div>
                                     </div>
                                 </td>
                                 <td class="px-5 py-4">{{ $ktm->program_studi }}<span

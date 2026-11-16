@@ -1,12 +1,13 @@
 @extends('layouts.app')
-@section('title', 'Sipandu')
+@section('title', 'SIPEKA')
 @section('content')
     <style>
         .ktm-hero-bg {
             background-image: url('{{ asset('assets/img/bg.jpg') }}');
             background-size: cover;
-            background-position: center;
+            background-position: center center;
             background-repeat: no-repeat;
+            min-height: 100%;
         }
 
         @media (max-width: 767px) {
@@ -17,10 +18,11 @@
     </style>
 
     <section class="relative isolate overflow-hidden text-white">
-        <div class="ktm-hero-bg absolute inset-0"></div>
-        <div class="absolute inset-0 bg-slate-900/45"></div>
+        <div class="ktm-hero-bg absolute inset-0 -z-10"></div>
+        <div class="absolute inset-0 -z-10 bg-slate-900/45"></div>
         <div class="absolute -right-24 -top-40 h-96 w-96 rounded-full bg-blue-400/20 blur-3xl"></div>
-        <div class="relative z-10 mx-auto grid max-w-7xl gap-10 px-6 py-16 sm:py-20 lg:grid-cols-[1fr_.8fr] lg:items-center lg:py-24">
+        <div
+            class="relative z-10 mx-auto grid max-w-7xl gap-10 px-6 py-16 sm:py-20 lg:grid-cols-[1fr_.8fr] lg:items-center lg:py-24">
             <div class="relative"><span
                     class="inline-flex items-center gap-2 rounded-full border border-blue-300/30 bg-white/10 px-3 py-1.5 text-xs font-semibold text-blue-100">✦
                     LAYANAN AKADEMIK DIGITAL</span>
@@ -59,49 +61,66 @@
                 <form method="POST" action="{{ route('ktm.store') }}" enctype="multipart/form-data" class="space-y-4">@csrf
                     <label for="nama-input" class="block text-sm font-semibold">Nama lengkap
                         <input id="nama-input" name="nama" value="{{ old('nama') }}" maxlength="120"
-                            placeholder="Nama sesuai data akademik" aria-invalid="{{ $errors->has('nama') ? 'true' : 'false' }}"
-                            @error('nama') aria-describedby="nama-error" @enderror
-                            @class([
+                            placeholder="Nama sesuai data akademik"
+                            aria-invalid="{{ $errors->has('nama') ? 'true' : 'false' }}"
+                            @error('nama') aria-describedby="nama-error" @enderror @class([
                                 'mt-1.5 w-full rounded-xl border px-4 py-3 font-normal outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100',
                                 'border-red-500' => $errors->has('nama'),
                                 'border-green-500' => $validationAttempted && !$errors->has('nama'),
                                 'border-slate-200' => !$validationAttempted,
                             ])>
                         @error('nama')
-                            <span id="nama-error" class="mt-1 block text-xs font-medium text-red-600" role="alert">{{ $message }}</span>
+                            <span id="nama-error" class="mt-1 block text-xs font-medium text-red-600"
+                                role="alert">{{ $message }}</span>
                         @enderror
                     </label>
                     <div class="grid gap-4 sm:grid-cols-2">
                         <label for="nim-input" class="block text-sm font-semibold">NIM
                             <input id="nim-input" name="nim" value="{{ old('nim') }}"
-                                placeholder="Nomor induk mahasiswa" aria-invalid="{{ $errors->has('nim') ? 'true' : 'false' }}"
-                                @error('nim') aria-describedby="nim-error" @enderror
-                                @class([
+                                placeholder="Nomor induk mahasiswa"
+                                aria-invalid="{{ $errors->has('nim') ? 'true' : 'false' }}"
+                                @error('nim') aria-describedby="nim-error" @enderror @class([
                                     'mt-1.5 w-full rounded-xl border px-4 py-3 font-normal outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100',
                                     'border-red-500' => $errors->has('nim'),
                                     'border-green-500' => $validationAttempted && !$errors->has('nim'),
                                     'border-slate-200' => !$validationAttempted,
                                 ])>
                             @error('nim')
-                                <span id="nim-error" class="mt-1 block text-xs font-medium text-red-600" role="alert">{{ $message }}</span>
+                                <span id="nim-error" class="mt-1 block text-xs font-medium text-red-600"
+                                    role="alert">{{ $message }}</span>
                             @enderror
                         </label>
                         <label for="angkatan" class="block text-sm font-semibold">Angkatan
                             <input name="angkatan" id="angkatan" type="number" min="2000" max="{{ now()->year + 1 }}"
                                 value="{{ old('angkatan') }}" placeholder="Contoh: 2023"
                                 aria-invalid="{{ $errors->has('angkatan') ? 'true' : 'false' }}"
-                                @error('angkatan') aria-describedby="angkatan-error" @enderror
-                                @class([
+                                @error('angkatan') aria-describedby="angkatan-error" @enderror @class([
                                     'mt-1.5 w-full rounded-xl border px-4 py-3 font-normal outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100',
                                     'border-red-500' => $errors->has('angkatan'),
                                     'border-green-500' => $validationAttempted && !$errors->has('angkatan'),
                                     'border-slate-200' => !$validationAttempted,
                                 ])>
                             @error('angkatan')
-                                <span id="angkatan-error" class="mt-1 block text-xs font-medium text-red-600" role="alert">{{ $message }}</span>
+                                <span id="angkatan-error" class="mt-1 block text-xs font-medium text-red-600"
+                                    role="alert">{{ $message }}</span>
                             @enderror
                         </label>
                     </div>
+                    <label for="email-input" class="block text-sm font-semibold">Email
+                        <span class="font-normal text-slate-500">(untuk notifikasi status pengajuan)</span>
+                        <input id="email-input" name="email" type="email" value="{{ old('email') }}"
+                            placeholder="contoh@email.com" aria-invalid="{{ $errors->has('email') ? 'true' : 'false' }}"
+                            @error('email') aria-describedby="email-error" @enderror @class([
+                                'mt-1.5 w-full rounded-xl border px-4 py-3 font-normal outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100',
+                                'border-red-500' => $errors->has('email'),
+                                'border-green-500' => $validationAttempted && !$errors->has('email'),
+                                'border-slate-200' => !$validationAttempted,
+                            ])>
+                        @error('email')
+                            <span id="email-error" class="mt-1 block text-xs font-medium text-red-600"
+                                role="alert">{{ $message }}</span>
+                        @enderror
+                    </label>
                     <label for="program-studi-input" class="block text-sm font-semibold">Program studi
                         <select id="program-studi-input" name="program_studi"
                             aria-invalid="{{ $errors->has('program_studi') ? 'true' : 'false' }}"
@@ -109,7 +128,8 @@
                             @class([
                                 'mt-1.5 w-full rounded-xl border bg-white px-4 py-3 font-normal outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100',
                                 'border-red-500' => $errors->has('program_studi'),
-                                'border-green-500' => $validationAttempted && !$errors->has('program_studi'),
+                                'border-green-500' =>
+                                    $validationAttempted && !$errors->has('program_studi'),
                                 'border-slate-200' => !$validationAttempted,
                             ])>
                             <option value="">Pilih program studi</option>
@@ -119,7 +139,8 @@
                             @endforeach
                         </select>
                         @error('program_studi')
-                            <span id="program-studi-error" class="mt-1 block text-xs font-medium text-red-600" role="alert">{{ $message }}</span>
+                            <span id="program-studi-error" class="mt-1 block text-xs font-medium text-red-600"
+                                role="alert">{{ $message }}</span>
                         @enderror
                     </label>
                     <div @class([
@@ -128,20 +149,20 @@
                         'border-green-500' => $validationAttempted && !$errors->has('foto'),
                         'border-slate-200' => !$validationAttempted,
                     ])>
-                        <label for="foto-input" class="block text-sm font-semibold">Pas foto <span class="font-normal text-slate-500">(JPG/PNG,
+                        <label for="foto-input" class="block text-sm font-semibold">Pas foto <span
+                                class="font-normal text-slate-500">(JPG/PNG,
                                 maksimal 5 MB)</span></label>
-                        <input id="foto-input" type="file" name="foto"
-                            accept="image/jpeg,image/png"
+                        <input id="foto-input" type="file" name="foto" accept="image/jpeg,image/png"
                             aria-invalid="{{ $errors->has('foto') ? 'true' : 'false' }}"
-                            @error('foto') aria-describedby="foto-error" @enderror
-                            @class([
+                            @error('foto') aria-describedby="foto-error" @enderror @class([
                                 'mt-2 block w-full rounded-xl border bg-white px-3 py-2 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:font-semibold file:text-blue-700',
                                 'border-red-500' => $errors->has('foto'),
                                 'border-green-500' => $validationAttempted && !$errors->has('foto'),
                                 'border-slate-200' => !$validationAttempted,
                             ])>
                         @error('foto')
-                            <span id="foto-error" class="mt-1 block text-xs font-medium text-red-600" role="alert">{{ $message }}</span>
+                            <span id="foto-error" class="mt-1 block text-xs font-medium text-red-600"
+                                role="alert">{{ $message }}</span>
                         @enderror
                         <p class="mt-2 text-xs text-slate-500">Pilih foto, lalu geser gambar di area pratinjau dan atur
                             zoom. Potongan otomatis berbentuk pas foto 3:4.</p>
@@ -182,7 +203,8 @@
                                 akademik.</span>
                         </label>
                         @error('persetujuan')
-                            <span id="persetujuan-error" class="mt-2 block text-xs font-medium text-red-600" role="alert">{{ $message }}</span>
+                            <span id="persetujuan-error" class="mt-2 block text-xs font-medium text-red-600"
+                                role="alert">{{ $message }}</span>
                         @enderror
                     </div>
                     <button
