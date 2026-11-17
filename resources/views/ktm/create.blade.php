@@ -166,6 +166,10 @@
                         @enderror
                         <p class="mt-2 text-xs text-slate-500">Pilih foto, lalu geser gambar di area pratinjau dan atur
                             zoom. Potongan otomatis berbentuk pas foto 3:4.</p>
+                        <ul class="mt-2 list-inside list-decimal space-y-1 text-xs">
+                            <li class="text-red-600">Teknik Informatika : Background Merah</li>
+                            <li class="text-yellow-500">Sistem Informasi : Background Kuning</li>
+                        </ul>
                         <div id="crop-tools" class="mt-4 hidden">
                             <div
                                 class="mx-auto max-w-sm overflow-hidden rounded-xl border-4 border-white bg-slate-200 shadow-md">
