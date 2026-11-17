@@ -160,10 +160,12 @@ class DownloadCardServices
 
         $styles = [];
         foreach ($stylePaths as $stylePath) {
-            abort_unless(is_file($stylePath), 503, 'Aset CSS kartu tidak ditemukan.');
+            if (! is_file($stylePath)) {
+                continue;
+            }
             $style = file_get_contents($stylePath);
             if ($style === false) {
-                throw new RuntimeException('Tidak dapat membaca aset CSS kartu.');
+                continue;
             }
 
             $styles[] = $this->inlineStyleAssets($style);
@@ -179,11 +181,13 @@ class DownloadCardServices
             function (array $matches): string {
                 $assetUrl = $matches[1] !== '' ? $matches[1] : $matches[2];
                 $assetPath = public_path(ltrim($assetUrl, '/'));
-                abort_unless(is_file($assetPath), 503, 'Font atau aset kartu tidak ditemukan.');
+                if (! is_file($assetPath)) {
+                    return $matches[0];
+                }
 
                 $contents = file_get_contents($assetPath);
                 if ($contents === false) {
-                    throw new RuntimeException('Tidak dapat membaca aset font kartu.');
+                    return $matches[0];
                 }
 
                 $mimeType = match (strtolower(pathinfo($assetPath, PATHINFO_EXTENSION))) {
@@ -198,7 +202,7 @@ class DownloadCardServices
         );
 
         if ($result === null) {
-            throw new RuntimeException('Tidak dapat menyiapkan font dan aset kartu.');
+            return $styles;
         }
 
         return $result;

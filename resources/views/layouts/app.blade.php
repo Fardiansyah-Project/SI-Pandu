@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#102b5c">
-    <title>@yield('title', 'KTM Generator') — STMIK Adhi Guna</title>
+    <title>@yield('title', 'SIPEKA') — STMIK Adhi Guna</title>
     <link rel="icon" href="{{ asset('assets/logo/images/logo.png') }}">
     @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
         @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -27,7 +27,8 @@
 </head>
 
 <body class="min-h-screen bg-slate-50 text-slate-900 antialiased">
-    <header class="sticky top-0 z-50 border-b border-white/10 bg-[#102b5c] text-white shadow-md backdrop-blur-sm transition-shadow duration-300">
+    <header
+        class="sticky top-0 z-50 border-b border-white/10 bg-[#102b5c] text-white shadow-md backdrop-blur-sm transition-shadow duration-300">
         <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
             <a href="{{ route('ktm.create') }}" class="flex items-center gap-3">
                 <img src="{{ asset('assets/logo/images/logo.png') }}" class="grid h-11 w-11 place-items-center" />
@@ -70,7 +71,9 @@
                 header.classList.remove('shadow-lg');
                 header.classList.add('shadow-md');
             }
-        }, { passive: true });
+        }, {
+            passive: true
+        });
     </script>
 </body>
 
