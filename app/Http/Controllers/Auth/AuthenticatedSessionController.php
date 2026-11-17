@@ -10,10 +10,10 @@ use Illuminate\View\View;
 
 class AuthenticatedSessionController extends Controller
 {
-    public function create(): View
+    public function create(): View|RedirectResponse
     {
         if (Auth::check()) {
-            return redirect()->intended(route('admin.ktm.index'));
+            return redirect()->route('admin.ktm.index');
         }
 
         return view('auth.login');

@@ -21,6 +21,10 @@
 /storage/*.key
 /storage/pail
 /vendor
+/.agents
+/.claude
+/Template_Cards
+KTM-GENERATOR-SPEC.md
 _ide_helper.php
 Homestead.json
 Homestead.yaml
