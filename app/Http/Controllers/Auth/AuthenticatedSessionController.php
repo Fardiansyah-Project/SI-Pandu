@@ -12,6 +12,10 @@ class AuthenticatedSessionController extends Controller
 {
     public function create(): View
     {
+        if (Auth::check()) {
+            return redirect()->intended(route('admin.ktm.index'));
+        }
+
         return view('auth.login');
     }
 

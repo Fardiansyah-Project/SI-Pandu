@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Override;
 
 class KtmRequest extends FormRequest
@@ -25,7 +26,13 @@ class KtmRequest extends FormRequest
     {
         return [
             'nama' => ['required', 'string', 'max:120'],
-            'nim' => ['required', 'string', 'max:30', 'regex:/^[0-9A-Za-z.-]+$/', 'unique:ktms,nim'],
+            'nim' => [
+                'required',
+                'string',
+                'max:30',
+                'regex:/^[0-9A-Za-z.-]+$/',
+                Rule::unique('ktms', 'nim')->withoutTrashed(),
+            ],
             'email' => ['required', 'email:rfc,dns', 'max:255'],
             'program_studi' => ['required', 'string', 'max:120'],
             'angkatan' => ['required', 'integer', 'min:2000', 'max:' . (now()->year)],

@@ -2,6 +2,14 @@
     $isSistemInformasi = mb_strtolower(trim($ktm->program_studi)) === 'sistem informasi';
     // $accentStart = $isSistemInformasi ? 'bottom_wave_SI' : 'bottom_wave_TI';
     // $accentEnd = $isSistemInformasi ? '#eab308' : '#b91c1c';
+
+    $namaMahasiswa = mb_strtoupper(trim(preg_replace('/\s+/', ' ', (string) $ktm->nama)));
+    $namaLength = max(1, mb_strlen($namaMahasiswa));
+
+    // Menghitung ukuran font dinamis agar nama panjang otomatis mengecil dan tidak turun ke bawah (tetap 1 baris)
+    // Nama normal (<= 16 karakter) menggunakan ukuran standar 54px.
+    // Semakin panjang namanya, ukuran font mengecil secara proporsional (min 20px).
+    $namaFontSize = (int) round(min(54, max(20, 920 / $namaLength)));
 @endphp
 <div
     class="relative w-full aspect-[1011/639] [container-type:inline-size] print:w-[1011px] print:h-[639px] print:aspect-auto">
@@ -40,9 +48,12 @@
         <!-- Data mahasiswa -->
         <div class="absolute left-[302px] top-[238px] text-navy">
             <div class="text-[22px] tracking-[5px] uppercase">Kartu Mahasiswa</div>
-            <div id="nama" class="mt-3.5 max-w-[640px] text-[54px] font-bold leading-[1.15] uppercase"
-                title="{{ mb_strtoupper($ktm->nama) }}">
-                {{ mb_strtoupper($ktm->nama) }}
+            <div id="nama" class="mt-3.5 h-[62px] max-w-[640px] flex items-center"
+                title="{{ $namaMahasiswa }}">
+                <span class="block w-full font-bold leading-[1.15] uppercase whitespace-nowrap overflow-hidden text-ellipsis"
+                    style="font-size: {{ $namaFontSize }}px;">
+                    {{ $namaMahasiswa }}
+                </span>
             </div>
             <div id="nim" class="mt-1.5 text-[50px] font-bold leading-tight" title="{{ $ktm->nim }}">
                 {{ $ktm->nim }}
