@@ -378,5 +378,4 @@
             }, 'image/jpeg', 0.92)
         });
     </script> --}}
-    <script src="{{ mix('js/app.js') }}"></script>
 @endsection
