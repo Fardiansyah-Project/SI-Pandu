@@ -156,6 +156,11 @@ class DownloadCardServices
         }
 
         $source = $this->readImage($path);
+        $photo = imagecreatetruecolor(202, 268);
+        if ($photo === false) {
+            imagedestroy($source);
+            throw new RuntimeException('Tidak dapat menyiapkan area foto kartu.');
+        }
 
         try {
             $sourceWidth = imagesx($source);
@@ -175,9 +180,59 @@ class DownloadCardServices
 
             $cropHeight = $sourceHeight - 2 * $sourceY;
 
-            imagecopyresampled($canvas, $source, 64, 221, $sourceX, $sourceY, 202, 268, (int) round($cropWidth), (int) round($cropHeight));
+            imagealphablending($photo, false);
+            imagesavealpha($photo, true);
+            $transparent = imagecolorallocatealpha($photo, 0, 0, 0, 127);
+            imagefill($photo, 0, 0, $transparent);
+            imagecopyresampled($photo, $source, 0, 0, $sourceX, $sourceY, 202, 268, (int) round($cropWidth), (int) round($cropHeight));
+            $this->roundImageCorners($photo, 18);
+
+            imagealphablending($canvas, true);
+            imagecopy($canvas, $photo, 64, 221, 0, 0, 202, 268);
         } finally {
             imagedestroy($source);
+            imagedestroy($photo);
+        }
+    }
+
+    private function roundImageCorners(\GdImage $image, int $radius): void
+    {
+        $width = imagesx($image);
+        $height = imagesy($image);
+
+        // Four-by-four coverage sampling smooths the rounded edge at card resolution.
+        for ($y = 0; $y < $radius; $y++) {
+            for ($x = 0; $x < $radius; $x++) {
+                $coveredSamples = 0;
+                for ($sampleY = 0; $sampleY < 4; $sampleY++) {
+                    for ($sampleX = 0; $sampleX < 4; $sampleX++) {
+                        $distanceX = $radius - ($x + ($sampleX + 0.5) / 4);
+                        $distanceY = $radius - ($y + ($sampleY + 0.5) / 4);
+                        if ($distanceX ** 2 + $distanceY ** 2 <= $radius ** 2) {
+                            $coveredSamples++;
+                        }
+                    }
+                }
+
+                if ($coveredSamples === 16) {
+                    continue;
+                }
+
+                $coordinates = [
+                    [$x, $y],
+                    [$width - 1 - $x, $y],
+                    [$x, $height - 1 - $y],
+                    [$width - 1 - $x, $height - 1 - $y],
+                ];
+
+                foreach ($coordinates as [$pixelX, $pixelY]) {
+                    $pixel = imagecolorat($image, $pixelX, $pixelY);
+                    $color = imagecolorsforindex($image, $pixel);
+                    $alpha = (int) round($color['alpha'] + (127 - $color['alpha']) * (1 - $coveredSamples / 16));
+                    $maskedColor = imagecolorallocatealpha($image, $color['red'], $color['green'], $color['blue'], $alpha);
+                    imagesetpixel($image, $pixelX, $pixelY, $maskedColor);
+                }
+            }
         }
     }
 
@@ -202,20 +257,27 @@ class DownloadCardServices
     private function drawCardText(\GdImage $canvas, Ktm $ktm, string $fontPath, string $boldFontPath): void
     {
         $navy = imagecolorallocate($canvas, 15, 35, 75);
-        $this->drawText($canvas, 'SEKOLAH TINGGI MANAJEMEN INFORMATIKA DAN KOMPUTER', 24, 180, 68, $navy, $fontPath);
+        $campusTitle = 'SEKOLAH TINGGI MANAJEMEN INFORMATIKA DAN KOMPUTER';
+        $campusTitleFontSize = 24;
+
+        while ($campusTitleFontSize > 18 && $this->textWidth($campusTitle, $fontPath, $campusTitleFontSize) > self::CARD_WIDTH - 180 - 56) {
+            $campusTitleFontSize--;
+        }
+
+        $this->drawText($canvas, $campusTitle, $campusTitleFontSize, 180, 68, $navy, $fontPath);
         $this->drawText($canvas, 'STMIK ADHI GUNA', 48, 180, 126, $navy, $boldFontPath);
         $this->drawTrackedText($canvas, 'KARTU MAHASISWA', 22, 302, 263, $navy, $fontPath, 5);
 
         $name = mb_strtoupper(trim(preg_replace('/\s+/', ' ', (string) $ktm->nama) ?? ''));
         $nameLength = max(1, mb_strlen($name));
-        $nameFontSize = (int) round(min(54, max(20, 920 / $nameLength)));
+        $nameFontSize = (int) round(min(45, max(20, 920 / $nameLength)));
 
         while ($nameFontSize > 20 && $this->textWidth($name, $boldFontPath, $nameFontSize) > 640) {
             $nameFontSize--;
         }
 
         $this->drawText($canvas, $name, $nameFontSize, 302, 323, $navy, $boldFontPath);
-        $this->drawText($canvas, (string) $ktm->nim, 50, 302, 390, $navy, $boldFontPath);
+        $this->drawText($canvas, (string) $ktm->nim, 45, 302, 390, $navy, $boldFontPath);
         $this->drawTrackedText($canvas, mb_strtoupper(trim($ktm->program_studi)), 23, 302, 435, $navy, $fontPath, 5);
     }
 
