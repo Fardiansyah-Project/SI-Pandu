@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class KtmController extends Controller
 {
@@ -80,7 +80,7 @@ class KtmController extends Controller
         ]);
     }
 
-    public function downloadCard(Ktm $ktm, string $side, DownloadCardServices $downloadCardServices): StreamedResponse
+    public function downloadCard(Ktm $ktm, string $side, DownloadCardServices $downloadCardServices): BinaryFileResponse
     {
         return $downloadCardServices->downloadCard($ktm, $side);
     }

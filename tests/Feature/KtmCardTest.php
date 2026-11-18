@@ -7,6 +7,8 @@ use App\Models\Ktm;
 use App\Services\DownloadCardServices;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Tests\TestCase;
 
 class KtmCardTest extends TestCase
@@ -45,9 +47,18 @@ class KtmCardTest extends TestCase
         $this->assertStringContainsString('card-back_TI.png', $preview);
 
         $response = $controller->downloadCard($ktm, 'depan', $downloadCardServices);
+        $this->assertInstanceOf(BinaryFileResponse::class, $response);
+        $this->assertSame('image/png', $response->headers->get('Content-Type'));
+        $this->assertStringContainsString('KTM-'.$ktm->nim.'-depan.png', $response->headers->get('Content-Disposition'));
+        $expectedBytes = $response->getFile()->getSize();
+        $response->prepare(Request::create('/download'));
+        $this->assertSame((string) $expectedBytes, $response->headers->get('Content-Length'));
+
         ob_start();
         $response->sendContent();
         $png = ob_get_clean();
+
+        $this->assertSame($expectedBytes, strlen($png));
 
         $image = imagecreatefromstring($png);
         $this->assertInstanceOf(\GdImage::class, $image);
@@ -103,9 +114,18 @@ class KtmCardTest extends TestCase
         $this->assertStringContainsString('card-back_SI.png', $preview);
 
         $response = $controller->downloadCard($ktm, 'belakang', $downloadCardServices);
+        $this->assertInstanceOf(BinaryFileResponse::class, $response);
+        $this->assertSame('image/png', $response->headers->get('Content-Type'));
+        $this->assertStringContainsString('KTM-'.$ktm->nim.'-belakang.png', $response->headers->get('Content-Disposition'));
+        $expectedBytes = $response->getFile()->getSize();
+        $response->prepare(Request::create('/download'));
+        $this->assertSame((string) $expectedBytes, $response->headers->get('Content-Length'));
+
         ob_start();
         $response->sendContent();
         $png = ob_get_clean();
+
+        $this->assertSame($expectedBytes, strlen($png));
 
         $template = file_get_contents(public_path('assets/partials/card-back_SI.png'));
         $this->assertNotFalse($template);

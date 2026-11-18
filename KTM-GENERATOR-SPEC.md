@@ -547,8 +547,13 @@ it('halaman verifikasi tidak menampilkan data jika token salah', fn () => /* ...
 
 ## 13. Pengembangan Lanjutan (opsional)
 
-- Login mahasiswa + pelacakan status pengajuan & notifikasi email/WhatsApp.
+- Login mahasiswa + pelacakan status pengajuan & notifikasi email.
 - Import massal dari Excel/CSV.
 - Kartu virtual (Apple/Google Wallet) / tampilan KTM digital.
 - Nomor seri kartu & masa berlaku, serta riwayat cetak ulang.
 - Integrasi data akademik (SIAKAD/PDDikti) untuk validasi NIM.
+
+## 14. Tahapan Production
+- Bagian download kartu berjalan lancar di server
+- Optimize kode program
+- Setup environment sesuai standar hosting
