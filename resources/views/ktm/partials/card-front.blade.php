@@ -7,9 +7,9 @@
     $namaLength = max(1, mb_strlen($namaMahasiswa));
 
     // Menghitung ukuran font dinamis agar nama panjang otomatis mengecil dan tidak turun ke bawah (tetap 1 baris)
-    // Nama normal (<= 16 karakter) menggunakan ukuran standar 54px.
+    // Nama normal (<= 20 karakter) menggunakan ukuran standar 45px.
     // Semakin panjang namanya, ukuran font mengecil secara proporsional (min 20px).
-    $namaFontSize = (int) round(min(54, max(20, 920 / $namaLength)));
+    $namaFontSize = (int) round(min(45, max(20, 920 / $namaLength)));
 @endphp
 <div
     class="relative w-full aspect-[1011/639] [container-type:inline-size] print:w-[1011px] print:h-[639px] print:aspect-auto">

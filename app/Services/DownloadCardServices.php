@@ -8,15 +8,15 @@ use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\PngWriter;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
-use Symfony\Component\HttpFoundation\StreamedResponse;
-use Symfony\Component\Process\Exception\ProcessFailedException;
-use Symfony\Component\Process\Exception\ProcessTimedOutException;
-use Symfony\Component\Process\ExecutableFinder;
-use Symfony\Component\Process\Process;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class DownloadCardServices
 {
-    public function downloadCard(Ktm $ktm, string $side): StreamedResponse
+    private const CARD_WIDTH = 1011;
+
+    private const CARD_HEIGHT = 639;
+
+    public function downloadCard(Ktm $ktm, string $side): BinaryFileResponse
     {
         abort_unless($ktm->status === 'approved', 403, 'KTM harus disetujui sebelum diunduh.');
         abort_unless(in_array($side, ['depan', 'belakang'], true), 404);
@@ -36,308 +36,286 @@ class DownloadCardServices
         return (new PngWriter)->write($qrCode)->getString();
     }
 
-    private function downloadFrontCard(Ktm $ktm): StreamedResponse
+    private function downloadFrontCard(Ktm $ktm): BinaryFileResponse
     {
-        $temporaryDirectory = $this->createTemporaryDirectory();
-        $keepTemporaryDirectory = false;
+        abort_unless(extension_loaded('gd') && function_exists('imagettftext'), 503, 'Ekstensi GD dengan dukungan FreeType harus diaktifkan untuk membuat kartu.');
+
+        $fontPath = public_path('fonts/DejaVuSans.ttf');
+        $boldFontPath = public_path('fonts/DejaVuSans-Bold.ttf');
+        abort_unless(is_file($fontPath) && is_file($boldFontPath), 503, 'Font kartu tidak ditemukan.');
+
+        $topWavePath = public_path('assets/partials/top_wave.png');
+        $bottomWaveFilename = mb_strtolower(trim($ktm->program_studi)) === 'sistem informasi'
+            ? 'bottom_wave_SI.png'
+            : 'bottom_wave_TI.png';
+        $bottomWavePath = public_path('assets/partials/'.$bottomWaveFilename);
+        abort_unless(is_file($topWavePath) && is_file($bottomWavePath), 503, 'Aset gelombang kartu tidak ditemukan.');
+
+        $pngPath = tempnam(sys_get_temp_dir(), 'ktm-card-');
+        if ($pngPath === false) {
+            throw new RuntimeException('Tidak dapat membuat file sementara untuk PNG kartu.');
+        }
+
+        $keepPng = false;
+        $card = imagecreatetruecolor(self::CARD_WIDTH, self::CARD_HEIGHT);
 
         try {
-            $browserProfile = $temporaryDirectory.DIRECTORY_SEPARATOR.'profile';
-            $htmlPath = $temporaryDirectory.DIRECTORY_SEPARATOR.'card.html';
-            $pngPath = $temporaryDirectory.DIRECTORY_SEPARATOR.'card.png';
-
-            if (! mkdir($browserProfile, 0700)) {
-                throw new RuntimeException('Tidak dapat membuat direktori sementara untuk Chromium.');
+            if ($card === false) {
+                throw new RuntimeException('Tidak dapat menyiapkan gambar kartu.');
             }
 
-            $logoPath = public_path('assets/logo/logo.png');
-            $photoPath = Storage::disk('public')->path($ktm->foto_path);
-            $topWavePath = public_path('assets/partials/top_wave.png');
-            $bottomWaveFilename = mb_strtolower(trim($ktm->program_studi)) === 'sistem informasi'
-                ? 'bottom_wave_SI.png'
-                : 'bottom_wave_TI.png';
-            $bottomWavePath = public_path('assets/partials/'.$bottomWaveFilename);
-            abort_unless(is_file($topWavePath) && is_file($bottomWavePath), 503, 'Aset gelombang kartu tidak ditemukan.');
+            imagealphablending($card, true);
+            $white = imagecolorallocate($card, 255, 255, 255);
+            imagefill($card, 0, 0, $white);
 
-            $view = view('ktm.download-card-front', [
-                'ktm' => $ktm,
-                'verificationQr' => 'data:image/png;base64,'.base64_encode($this->verificationQr($ktm)),
-                'logoSource' => $this->imageDataUri($logoPath, 'image/png'),
-                'photoSource' => $this->imageDataUri($photoPath, 'image/png'),
-                'topWaveSource' => $this->imageDataUri($topWavePath, 'image/png'),
-                'bottomWaveSource' => $this->imageDataUri($bottomWavePath, 'image/png'),
-                'cardStyles' => $this->cardStyles(),
-            ])->render();
+            $this->drawScaledImage($card, $topWavePath, 0, 0, self::CARD_WIDTH, (int) round(95 * self::CARD_WIDTH / 324));
+            $this->drawScaledImage($card, $bottomWavePath, 0, self::CARD_HEIGHT - (int) round(142 * self::CARD_WIDTH / 324), self::CARD_WIDTH, (int) round(142 * self::CARD_WIDTH / 324));
+            $this->drawContainedImage($card, public_path('assets/logo/logo.png'), 56, 40, 112, 112);
+            $this->drawStudentPhoto($card, Storage::disk('public')->path($ktm->foto_path));
+            $this->drawVerificationQr($card, $ktm);
+            $this->drawCardText($card, $ktm, $fontPath, $boldFontPath);
 
-            if (file_put_contents($htmlPath, $view) === false) {
-                throw new RuntimeException('Tidak dapat menyiapkan tampilan kartu untuk diunduh.');
+            if (! imagepng($card, $pngPath)) {
+                throw new RuntimeException('PNG kartu depan gagal dibuat.');
             }
 
-            $process = new Process([
-                $this->browserExecutable(),
-                '--headless',
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-gpu',
-                '--disable-crash-reporter',
-                '--disable-breakpad',
-                '--hide-scrollbars',
-                '--no-first-run',
-                '--no-default-browser-check',
-                '--allow-file-access-from-files',
-                '--run-all-compositor-stages-before-draw',
-                '--virtual-time-budget=3000',
-                '--force-device-scale-factor=1',
-                '--disable-dev-shm-usage',
-                '--user-data-dir='.$browserProfile,
-                '--window-size=1011,639',
-                '--screenshot='.$pngPath,
-                $this->fileUrl($htmlPath),
-            ], timeout: 45);
+            $response = response()->download($pngPath, 'KTM-'.$ktm->nim.'-depan.png', ['Content-Type' => 'image/png']);
+            $response->deleteFileAfterSend(true);
+            $keepPng = true;
 
-            try {
-                $process->mustRun();
-            } catch (ProcessTimedOutException $exception) {
-                report($exception);
-                abort(503, 'Proses rendering kartu depan melewati batas waktu.');
-            } catch (ProcessFailedException $exception) {
-                report($exception);
-                abort(503, 'Gagal merender kartu. Pastikan Chromium atau Chrome dapat dijalankan.');
-            }
-
-            abort_unless(is_file($pngPath) && filesize($pngPath) > 0, 503, 'PNG kartu depan gagal dibuat.');
-
-            unlink($htmlPath);
-            $keepTemporaryDirectory = true;
-
-            return response()->streamDownload(function () use ($pngPath, $temporaryDirectory): void {
-                try {
-                    if (readfile($pngPath) === false) {
-                        throw new RuntimeException('Tidak dapat membaca PNG kartu yang telah dibuat.');
-                    }
-                } finally {
-                    $this->removeTemporaryDirectory($temporaryDirectory);
-                }
-            }, 'KTM-'.$ktm->nim.'-depan.png', ['Content-Type' => 'image/png']);
+            return $response;
         } finally {
-            if (! $keepTemporaryDirectory) {
-                $this->removeTemporaryDirectory($temporaryDirectory);
+            if ($card instanceof \GdImage) {
+                imagedestroy($card);
+            }
+
+            if (! $keepPng && is_file($pngPath) && ! unlink($pngPath)) {
+                throw new RuntimeException('Tidak dapat menghapus PNG kartu sementara.');
             }
         }
     }
 
-    private function downloadBackCard(Ktm $ktm): StreamedResponse
+    private function downloadBackCard(Ktm $ktm): BinaryFileResponse
     {
         $isSistemInformasi = mb_strtolower(trim($ktm->program_studi)) === 'sistem informasi';
         $template = $isSistemInformasi ? 'card-back_SI.png' : 'card-back_TI.png';
         $templatePath = public_path('assets/partials/'.$template);
         abort_unless(is_file($templatePath), 503, 'Template kartu belakang tidak ditemukan.');
 
-        return response()->streamDownload(function () use ($templatePath): void {
-            if (readfile($templatePath) === false) {
-                throw new RuntimeException('Tidak dapat membaca template kartu belakang.');
-            }
-        }, 'KTM-'.$ktm->nim.'-belakang.png', ['Content-Type' => 'image/png']);
+        return response()->download($templatePath, 'KTM-'.$ktm->nim.'-belakang.png', ['Content-Type' => 'image/png']);
     }
 
-    private function cardStyles(): string
+    private function drawScaledImage(\GdImage $canvas, string $path, int $x, int $y, int $width, int $height): void
     {
-        $manifestPath = public_path('build/manifest.json');
-        abort_unless(is_file($manifestPath), 503, 'Aset frontend belum dibangun.');
+        $source = $this->readImage($path);
 
-        $manifest = json_decode((string) file_get_contents($manifestPath), true, flags: JSON_THROW_ON_ERROR);
-        $stylePaths = [
-            public_path('build/'.($manifest['resources/css/app.css']['file'] ?? '')),
-        ];
-        $fontManifestPath = public_path('build/fonts-manifest.json');
-
-        if (is_file($fontManifestPath)) {
-            $fontManifest = json_decode((string) file_get_contents($fontManifestPath), true, flags: JSON_THROW_ON_ERROR);
-            if (isset($fontManifest['style']['file'])) {
-                $stylePaths[] = public_path('build/'.$fontManifest['style']['file']);
-            }
+        try {
+            imagecopyresampled($canvas, $source, $x, $y, 0, 0, $width, $height, imagesx($source), imagesy($source));
+        } finally {
+            imagedestroy($source);
         }
-
-        $styles = [];
-        foreach ($stylePaths as $stylePath) {
-            if (! is_file($stylePath)) {
-                continue;
-            }
-            $style = file_get_contents($stylePath);
-            if ($style === false) {
-                continue;
-            }
-
-            $styles[] = $this->inlineStyleAssets($style);
-        }
-
-        return implode("\n", $styles);
     }
 
-    private function inlineStyleAssets(string $styles): string
-    {
-        $result = preg_replace_callback(
-            '~url\("(/build/assets/[^"]+)"\)|url\((/build/assets/[^)]+)\)~',
-            function (array $matches): string {
-                $assetUrl = $matches[1] !== '' ? $matches[1] : $matches[2];
-                $assetPath = public_path(ltrim($assetUrl, '/'));
-                if (! is_file($assetPath)) {
-                    return $matches[0];
-                }
-
-                $contents = file_get_contents($assetPath);
-                if ($contents === false) {
-                    return $matches[0];
-                }
-
-                $mimeType = match (strtolower(pathinfo($assetPath, PATHINFO_EXTENSION))) {
-                    'woff' => 'font/woff',
-                    'woff2' => 'font/woff2',
-                    default => 'application/octet-stream',
-                };
-
-                return 'url("data:'.$mimeType.';base64,'.base64_encode($contents).'")';
-            },
-            $styles,
-        );
-
-        if ($result === null) {
-            return $styles;
-        }
-
-        return $result;
-    }
-
-    private function imageDataUri(string $path, string $fallbackMimeType): string
+    private function drawContainedImage(\GdImage $canvas, string $path, int $x, int $y, int $width, int $height): void
     {
         if (! is_file($path)) {
-            return 'data:image/png;base64,';
-        }
-
-        $contents = file_get_contents($path);
-        if ($contents === false) {
-            throw new RuntimeException('Tidak dapat membaca gambar kartu.');
-        }
-
-        $mimeType = mime_content_type($path) ?: $fallbackMimeType;
-
-        return 'data:'.$mimeType.';base64,'.base64_encode($contents);
-    }
-
-    private function browserExecutable(): string
-    {
-        $configuredPath = config('services.ktm_chrome_path');
-        if (is_string($configuredPath) && $configuredPath !== '') {
-            abort_unless(is_file($configuredPath), 503, 'Lokasi browser di KTM_CHROME_PATH tidak ditemukan.');
-
-            return $configuredPath;
-        }
-
-        $finder = new ExecutableFinder;
-        foreach (['chrome', 'msedge', 'chromium', 'chromium-browser', 'google-chrome', 'google-chrome-stable'] as $name) {
-            if ($executable = $finder->find($name)) {
-                return $executable;
-            }
-        }
-
-        $programFiles = getenv('ProgramFiles') ?: 'C:\\Program Files';
-        $programFilesX86 = getenv('ProgramFiles(x86)') ?: 'C:\\Program Files (x86)';
-        $localAppData = getenv('LOCALAPPDATA') ?: '';
-        $commonPaths = [
-            $programFiles.'\\Google\\Chrome\\Application\\chrome.exe',
-            $programFilesX86.'\\Google\\Chrome\\Application\\chrome.exe',
-            $programFiles.'\\Microsoft\\Edge\\Application\\msedge.exe',
-            $programFilesX86.'\\Microsoft\\Edge\\Application\\msedge.exe',
-            $localAppData.'\\Google\\Chrome\\Application\\chrome.exe',
-            '/usr/bin/google-chrome',
-            '/usr/bin/google-chrome-stable',
-            '/usr/bin/chromium',
-            '/usr/bin/chromium-browser',
-            '/snap/bin/chromium',
-            '/usr/local/bin/chrome',
-            '/usr/local/bin/chromium',
-        ];
-
-        foreach ($commonPaths as $path) {
-            if (is_file($path)) {
-                return $path;
-            }
-        }
-
-        abort(503, 'Browser Chromium tidak ditemukan. Atur KTM_CHROME_PATH ke lokasi Chrome atau Edge.');
-    }
-
-    private function fileUrl(string $path): string
-    {
-        $path = str_replace('\\', '/', $path);
-        if (preg_match('/^[A-Za-z]:\//', $path) === 1) {
-            $path = '/'.$path;
-        }
-
-        $segments = array_map('rawurlencode', explode('/', $path));
-
-        return 'file://'.str_replace('%3A', ':', implode('/', $segments));
-    }
-
-    private function createTemporaryDirectory(): string
-    {
-        $temporaryFile = tempnam(sys_get_temp_dir(), 'ktm-card-');
-        if ($temporaryFile === false) {
-            throw new RuntimeException('Tidak dapat membuat lokasi sementara untuk PNG kartu.');
-        }
-
-        if (! unlink($temporaryFile) || ! mkdir($temporaryFile, 0700)) {
-            throw new RuntimeException('Tidak dapat menyiapkan lokasi sementara untuk PNG kartu.');
-        }
-
-        return $temporaryFile;
-    }
-
-    private function removeTemporaryDirectory(string $directory): void
-    {
-        if (! is_dir($directory)) {
             return;
         }
 
-        foreach (new \FilesystemIterator($directory, \FilesystemIterator::SKIP_DOTS) as $entry) {
-            $path = $entry->getPathname();
+        $source = $this->readImage($path);
 
-            if ($entry->isDir() && ! $entry->isLink()) {
-                $this->removeTemporaryDirectory($path);
-            } else {
-                $this->removeTemporaryFile($path);
-            }
-        }
+        try {
+            $scale = min($width / imagesx($source), $height / imagesy($source));
+            $drawWidth = (int) round(imagesx($source) * $scale);
+            $drawHeight = (int) round(imagesy($source) * $scale);
 
-        if (! rmdir($directory)) {
-            throw new RuntimeException('Tidak dapat menghapus direktori sementara kartu.');
+            imagecopyresampled(
+                $canvas,
+                $source,
+                $x + (int) floor(($width - $drawWidth) / 2),
+                $y + (int) floor(($height - $drawHeight) / 2),
+                0,
+                0,
+                $drawWidth,
+                $drawHeight,
+                imagesx($source),
+                imagesy($source),
+            );
+        } finally {
+            imagedestroy($source);
         }
     }
 
-    private function removeTemporaryFile(string $path): void
+    private function drawStudentPhoto(\GdImage $canvas, string $path): void
     {
-        $attempts = PHP_OS_FAMILY === 'Windows' ? 30 : 1;
+        $background = imagecolorallocate($canvas, 231, 225, 218);
+        imagefilledrectangle($canvas, 64, 221, 265, 488, $background);
 
-        for ($attempt = 1; $attempt <= $attempts; $attempt++) {
-            try {
-                if (unlink($path)) {
-                    return;
-                }
-            } catch (\ErrorException $exception) {
-                $message = $exception->getMessage();
-                $isFileLocked = str_contains($message, 'Permission denied')
-                    || str_contains($message, 'Resource temporarily unavailable');
-
-                if (! $isFileLocked || $attempt === $attempts) {
-                    throw $exception;
-                }
-            }
-
-            if ($attempt < $attempts) {
-                usleep(100_000);
-            }
+        if (! is_file($path)) {
+            return;
         }
 
-        throw new RuntimeException('Tidak dapat menghapus file sementara kartu: '.$path);
+        $source = $this->readImage($path);
+        $photo = imagecreatetruecolor(202, 268);
+        if ($photo === false) {
+            imagedestroy($source);
+            throw new RuntimeException('Tidak dapat menyiapkan area foto kartu.');
+        }
+
+        try {
+            $sourceWidth = imagesx($source);
+            $sourceHeight = imagesy($source);
+            $targetRatio = 202 / 268;
+
+            if ($sourceWidth / $sourceHeight > $targetRatio) {
+                $cropWidth = $sourceHeight * $targetRatio;
+                $sourceX = (int) floor(($sourceWidth - $cropWidth) / 2);
+                $sourceY = 0;
+            } else {
+                $cropHeight = $sourceWidth / $targetRatio;
+                $sourceX = 0;
+                $sourceY = (int) floor(($sourceHeight - $cropHeight) / 2);
+                $cropWidth = $sourceWidth;
+            }
+
+            $cropHeight = $sourceHeight - 2 * $sourceY;
+
+            imagealphablending($photo, false);
+            imagesavealpha($photo, true);
+            $transparent = imagecolorallocatealpha($photo, 0, 0, 0, 127);
+            imagefill($photo, 0, 0, $transparent);
+            imagecopyresampled($photo, $source, 0, 0, $sourceX, $sourceY, 202, 268, (int) round($cropWidth), (int) round($cropHeight));
+            $this->roundImageCorners($photo, 18);
+
+            imagealphablending($canvas, true);
+            imagecopy($canvas, $photo, 64, 221, 0, 0, 202, 268);
+        } finally {
+            imagedestroy($source);
+            imagedestroy($photo);
+        }
+    }
+
+    private function roundImageCorners(\GdImage $image, int $radius): void
+    {
+        $width = imagesx($image);
+        $height = imagesy($image);
+
+        // Four-by-four coverage sampling smooths the rounded edge at card resolution.
+        for ($y = 0; $y < $radius; $y++) {
+            for ($x = 0; $x < $radius; $x++) {
+                $coveredSamples = 0;
+                for ($sampleY = 0; $sampleY < 4; $sampleY++) {
+                    for ($sampleX = 0; $sampleX < 4; $sampleX++) {
+                        $distanceX = $radius - ($x + ($sampleX + 0.5) / 4);
+                        $distanceY = $radius - ($y + ($sampleY + 0.5) / 4);
+                        if ($distanceX ** 2 + $distanceY ** 2 <= $radius ** 2) {
+                            $coveredSamples++;
+                        }
+                    }
+                }
+
+                if ($coveredSamples === 16) {
+                    continue;
+                }
+
+                $coordinates = [
+                    [$x, $y],
+                    [$width - 1 - $x, $y],
+                    [$x, $height - 1 - $y],
+                    [$width - 1 - $x, $height - 1 - $y],
+                ];
+
+                foreach ($coordinates as [$pixelX, $pixelY]) {
+                    $pixel = imagecolorat($image, $pixelX, $pixelY);
+                    $color = imagecolorsforindex($image, $pixel);
+                    $alpha = (int) round($color['alpha'] + (127 - $color['alpha']) * (1 - $coveredSamples / 16));
+                    $maskedColor = imagecolorallocatealpha($image, $color['red'], $color['green'], $color['blue'], $alpha);
+                    imagesetpixel($image, $pixelX, $pixelY, $maskedColor);
+                }
+            }
+        }
+    }
+
+    private function drawVerificationQr(\GdImage $canvas, Ktm $ktm): void
+    {
+        $qrCode = imagecreatefromstring($this->verificationQr($ktm));
+        if ($qrCode === false) {
+            throw new RuntimeException('QR verifikasi kartu tidak dapat dibuat.');
+        }
+
+        try {
+            $x = self::CARD_WIDTH - 36 - 111;
+            $y = self::CARD_HEIGHT - 24 - 111;
+            $background = imagecolorallocate($canvas, 23, 37, 84);
+            imagefilledrectangle($canvas, $x, $y, $x + 110, $y + 110, $background);
+            imagecopyresampled($canvas, $qrCode, $x, $y, 0, 0, 111, 111, imagesx($qrCode), imagesy($qrCode));
+        } finally {
+            imagedestroy($qrCode);
+        }
+    }
+
+    private function drawCardText(\GdImage $canvas, Ktm $ktm, string $fontPath, string $boldFontPath): void
+    {
+        $navy = imagecolorallocate($canvas, 15, 35, 75);
+        $campusTitle = 'SEKOLAH TINGGI MANAJEMEN INFORMATIKA DAN KOMPUTER';
+        $campusTitleFontSize = 24;
+
+        while ($campusTitleFontSize > 18 && $this->textWidth($campusTitle, $fontPath, $campusTitleFontSize) > self::CARD_WIDTH - 180 - 56) {
+            $campusTitleFontSize--;
+        }
+
+        $this->drawText($canvas, $campusTitle, $campusTitleFontSize, 180, 68, $navy, $fontPath);
+        $this->drawText($canvas, 'STMIK ADHI GUNA', 48, 180, 126, $navy, $boldFontPath);
+        $this->drawTrackedText($canvas, 'KARTU MAHASISWA', 22, 302, 263, $navy, $fontPath, 5);
+
+        $name = mb_strtoupper(trim(preg_replace('/\s+/', ' ', (string) $ktm->nama) ?? ''));
+        $nameLength = max(1, mb_strlen($name));
+        $nameFontSize = (int) round(min(45, max(20, 920 / $nameLength)));
+
+        while ($nameFontSize > 20 && $this->textWidth($name, $boldFontPath, $nameFontSize) > 640) {
+            $nameFontSize--;
+        }
+
+        $this->drawText($canvas, $name, $nameFontSize, 302, 323, $navy, $boldFontPath);
+        $this->drawText($canvas, (string) $ktm->nim, 45, 302, 390, $navy, $boldFontPath);
+        $this->drawTrackedText($canvas, mb_strtoupper(trim($ktm->program_studi)), 23, 302, 435, $navy, $fontPath, 5);
+    }
+
+    private function drawText(\GdImage $canvas, string $text, int $size, int $x, int $baseline, int $color, string $fontPath): void
+    {
+        if ($text !== '') {
+            imagettftext($canvas, $size, 0, $x, $baseline, $color, $fontPath, $text);
+        }
+    }
+
+    private function drawTrackedText(\GdImage $canvas, string $text, int $size, int $x, int $baseline, int $color, string $fontPath, int $spacing): void
+    {
+        foreach (mb_str_split($text) as $character) {
+            imagettftext($canvas, $size, 0, $x, $baseline, $color, $fontPath, $character);
+            $bounds = imagettfbbox($size, 0, $fontPath, $character);
+            $x += $bounds[2] - $bounds[0] + $spacing;
+        }
+    }
+
+    private function textWidth(string $text, string $fontPath, int $size): float
+    {
+        $bounds = imagettfbbox($size, 0, $fontPath, $text);
+
+        return (float) ($bounds[2] - $bounds[0]);
+    }
+
+    private function readImage(string $path): \GdImage
+    {
+        $contents = file_get_contents($path);
+        if ($contents === false) {
+            throw new RuntimeException('Tidak dapat membaca gambar kartu: '.$path);
+        }
+
+        $image = imagecreatefromstring($contents);
+        if ($image === false) {
+            throw new RuntimeException('Format gambar kartu tidak didukung: '.$path);
+        }
+
+        return $image;
     }
 }
