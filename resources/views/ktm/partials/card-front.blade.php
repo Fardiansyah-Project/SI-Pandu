@@ -47,7 +47,7 @@
 
         <!-- Data mahasiswa -->
         <div class="absolute left-[302px] top-[238px] text-navy">
-            <div class="text-[22px] tracking-[5px] uppercase">Kartu Mahasiswa</div>
+            <div class="text-[22px] tracking-[5px] uppercase text-sky-600">Kartu Mahasiswa</div>
             <div id="nama" class="mt-3.5 h-[62px] max-w-[640px] flex items-center"
                 title="{{ $namaMahasiswa }}">
                 <span class="block w-full font-bold leading-[1.15] uppercase whitespace-nowrap overflow-hidden text-ellipsis"
@@ -55,7 +55,7 @@
                     {{ $namaMahasiswa }}
                 </span>
             </div>
-            <div id="nim" class="mt-1.5 text-[50px] font-bold leading-tight" title="{{ $ktm->nim }}">
+            <div id="nim" class="mt-1.5 text-[40px] font-bold leading-tight text-sky-950" title="{{ $ktm->nim }}">
                 {{ $ktm->nim }}
             </div>
             <div id="prodi" class="mt-3 text-[23px] tracking-[5px] uppercase"
