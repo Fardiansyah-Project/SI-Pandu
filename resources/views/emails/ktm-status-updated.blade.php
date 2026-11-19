@@ -66,7 +66,7 @@
                                     Selamat! Pengajuan KTM Anda telah <strong>disetujui</strong>. Kartu mahasiswa
                                     digital
                                     Anda sudah siap dan dapat diverifikasi menggunakan kode pengajuan atau link
-                                    verifikasi.
+                                    verifikasi. Untuk pengambilan KTM fisik, dapat langsung ke bagian UPT Labkom yang ada di lantai 3.
                                 </p>
                             @elseif($ktm->status === 'rejected')
                                 <p style="margin:0 0 8px;font-size:14px;color:#334155;line-height:1.6">
