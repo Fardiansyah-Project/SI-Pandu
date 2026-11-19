@@ -309,7 +309,7 @@ class DownloadCardServices
         $this->drawText($canvas, $name, $nameFontSize, 302, 323, $navy, $boldFontPath);
 
         // NIM — sky-950, ukuran 40px sesuai website (text-[40px] text-sky-950)
-        $this->drawText($canvas, (string) $ktm->nim, 40, 302, 383, $sky950, $boldFontPath);
+        $this->drawText($canvas, (string) $ktm->nim, 35, 302, 383, $sky950, $boldFontPath);
 
         // Program studi — navy, tracking 5px sesuai website (ukuran 20pt agar setara text-[23px] CSS,
         // karena DejaVu Sans lebih lebar dari Instrument Sans yang dipakai di website)
