@@ -148,8 +148,9 @@ class DownloadCardServices
 
     private function drawStudentPhoto(\GdImage $canvas, string $path): void
     {
+        // Gambar background container dengan sudut rounded (radius 18px), sama seperti CSS rounded-[18px]
         $background = imagecolorallocate($canvas, 231, 225, 218);
-        imagefilledrectangle($canvas, 64, 221, 265, 488, $background);
+        $this->drawFilledRoundedRect($canvas, 64, 221, 202, 268, 18, $background);
 
         if (! is_file($path)) {
             return;
@@ -193,6 +194,26 @@ class DownloadCardServices
             imagedestroy($source);
             imagedestroy($photo);
         }
+    }
+
+    /**
+     * Menggambar persegi panjang dengan sudut rounded — pengganti imagefilledrectangle
+     * agar container foto (background) memiliki sudut yang sama bulatnya dengan foto di dalamnya.
+     */
+    private function drawFilledRoundedRect(\GdImage $canvas, int $x, int $y, int $width, int $height, int $radius, int $color): void
+    {
+        // Tubuh tengah (horizontal)
+        imagefilledrectangle($canvas, $x + $radius, $y, $x + $width - $radius, $y + $height, $color);
+        // Sayap kiri dan kanan (vertikal)
+        imagefilledrectangle($canvas, $x, $y + $radius, $x + $radius - 1, $y + $height - $radius, $color);
+        imagefilledrectangle($canvas, $x + $width - $radius + 1, $y + $radius, $x + $width, $y + $height - $radius, $color);
+
+        // Empat sudut rounded (lingkaran penuh pada masing-masing pojok)
+        $diameter = $radius * 2;
+        imagefilledellipse($canvas, $x + $radius, $y + $radius, $diameter, $diameter, $color);
+        imagefilledellipse($canvas, $x + $width - $radius, $y + $radius, $diameter, $diameter, $color);
+        imagefilledellipse($canvas, $x + $radius, $y + $height - $radius, $diameter, $diameter, $color);
+        imagefilledellipse($canvas, $x + $width - $radius, $y + $height - $radius, $diameter, $diameter, $color);
     }
 
     private function roundImageCorners(\GdImage $image, int $radius): void
@@ -256,7 +277,13 @@ class DownloadCardServices
 
     private function drawCardText(\GdImage $canvas, Ktm $ktm, string $fontPath, string $boldFontPath): void
     {
-        $navy = imagecolorallocate($canvas, 15, 35, 75);
+        // Navy (#0f2348 ≈ rgb 15,35,72) — warna teks utama kampus, nama, prodi
+        $navy = imagecolorallocate($canvas, 15, 35, 72);
+        // Sky-600 (#0284c7) — warna label "KARTU MAHASISWA" (sinkron dengan text-sky-600 di website)
+        $sky600 = imagecolorallocate($canvas, 2, 132, 199);
+        // Sky-950 (#082f49) — warna NIM (sinkron dengan text-sky-950 di website)
+        $sky950 = imagecolorallocate($canvas, 8, 47, 73);
+
         $campusTitle = 'SEKOLAH TINGGI MANAJEMEN INFORMATIKA DAN KOMPUTER';
         $campusTitleFontSize = 24;
 
@@ -266,7 +293,9 @@ class DownloadCardServices
 
         $this->drawText($canvas, $campusTitle, $campusTitleFontSize, 180, 68, $navy, $fontPath);
         $this->drawText($canvas, 'STMIK ADHI GUNA', 48, 180, 126, $navy, $boldFontPath);
-        $this->drawTrackedText($canvas, 'KARTU MAHASISWA', 22, 302, 263, $navy, $fontPath, 5);
+
+        // Label "KARTU MAHASISWA" — sky-600 sesuai website (text-sky-600)
+        $this->drawTrackedText($canvas, 'KARTU MAHASISWA', 22, 302, 263, $sky600, $fontPath, 5);
 
         $name = mb_strtoupper(trim(preg_replace('/\s+/', ' ', (string) $ktm->nama) ?? ''));
         $nameLength = max(1, mb_strlen($name));
@@ -276,9 +305,15 @@ class DownloadCardServices
             $nameFontSize--;
         }
 
+        // Nama mahasiswa — navy, font dinamis (sama dengan website)
         $this->drawText($canvas, $name, $nameFontSize, 302, 323, $navy, $boldFontPath);
-        $this->drawText($canvas, (string) $ktm->nim, 45, 302, 390, $navy, $boldFontPath);
-        $this->drawTrackedText($canvas, mb_strtoupper(trim($ktm->program_studi)), 23, 302, 435, $navy, $fontPath, 5);
+
+        // NIM — sky-950, ukuran 40px sesuai website (text-[40px] text-sky-950)
+        $this->drawText($canvas, (string) $ktm->nim, 40, 302, 383, $sky950, $boldFontPath);
+
+        // Program studi — navy, tracking 5px sesuai website (ukuran 20pt agar setara text-[23px] CSS,
+        // karena DejaVu Sans lebih lebar dari Instrument Sans yang dipakai di website)
+        $this->drawTrackedText($canvas, mb_strtoupper(trim($ktm->program_studi)), 20, 302, 430, $navy, $fontPath, 5);
     }
 
     private function drawText(\GdImage $canvas, string $text, int $size, int $x, int $baseline, int $color, string $fontPath): void
